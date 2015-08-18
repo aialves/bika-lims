@@ -968,7 +968,12 @@ class Analysis(BaseContent):
             dep_state = workflow.getInfoFor(dep, 'review_state')
             if dep_state == 'to_be_verified' \
                     and not skip(dep, "verify", peek=True):
-                workflow.doActionFor(dep, 'verify')
+                try:
+                    workflow.doActionFor(dep, 'verify')
+                except:
+                    # We don't care if any dep may not be verified;
+                    # it will be done in it's turn
+                    pass
                 skip(dep, "verify")
         # If this is on a worksheet and all it's other analyses are verified,
         # then verify the worksheet.

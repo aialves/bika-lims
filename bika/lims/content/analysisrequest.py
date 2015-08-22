@@ -1522,9 +1522,14 @@ class AnalysisRequest(BaseFolder):
         from bika.lims.catalog import getCatalog
         return getCatalog(self)
 
+    def getRequestID(self):
+        """ Return the id as RequestID
+        """
+        return safe_unicode(self.getId()).encode('utf-8')
+
     def Title(self):
         """ Return the Request ID as title """
-        return safe_unicode(self.getRequestID()).encode('utf-8')
+        return self.getRequestID()
 
     def Description(self):
         """ Return searchable data as Description """

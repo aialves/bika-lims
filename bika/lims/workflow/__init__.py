@@ -1,5 +1,6 @@
 from bika.lims import enum
 from bika.lims import PMF
+from bika.lims.browser import ulocalized_time
 from bika.lims import logger
 from bika.lims.interfaces import IJSONReadExtender
 from bika.lims.utils import t
@@ -67,6 +68,19 @@ def AfterTransitionEventHandler(instance, event):
         method()
 
 
+def BeforeTransitionEventHandler(instance, event):
+    """This will run the workflow_before_* on any
+    content type that has one.
+    """
+    # creation doesn't have a 'transition'
+    if not event.transition:
+        return
+    key = 'workflow_before_' + event.transition.id
+    method = getattr(instance, key, False)
+    if method:
+        method()
+
+
 def get_workflow_actions(obj):
     """ Compile a list of possible workflow transitions for this object
     """
@@ -105,6 +119,18 @@ def getCurrentState(obj, stateflowid):
     """
     wf = getToolByName(obj, 'portal_workflow')
     return wf.getInfoFor(obj, stateflowid, '')
+
+def getTransitionDate(obj, action_id):
+    workflow = getToolByName(obj, 'portal_workflow')
+    review_history = list(workflow.getInfoFor(obj, 'review_history'))
+    # invert the list, so we always see the most recent matching event
+    review_history.reverse()
+    for event in review_history:
+        if event['action'] == action_id:
+            value = ulocalized_time(event['time'], long_format=True,
+                                    time_only=False, context=obj)
+            return value
+    return None
 
 # Enumeration of the available status flows
 StateFlow = enum(review='review_state',

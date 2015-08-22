@@ -14,7 +14,6 @@ from zope.site.hooks import getSite
 
 
 class CatalogVocabulary(object):
-
     """Make vocabulary from catalog query.
 
     """
@@ -25,26 +24,50 @@ class CatalogVocabulary(object):
     key = 'UID'
     value = 'Title'
 
-    def __init__(self, context):
+    def __init__(self, context, key=None, value=None, contentFilter=None):
         self.context = context
+        self.key = key if key else self.key
+        self.value = value if value else self.value
+        self.contentFilter = \
+            contentFilter if contentFilter else self.contentFilter
 
     def __call__(self, **kwargs):
         site = getSite()
         request = aq_get(site, 'REQUEST', None)
         catalog = getToolByName(site, self.catalog)
-        if 'inactive_state' in catalog.indexes():
-            self.contentFilter['inactive_state'] = 'active'
-        if 'cancellation_state' in catalog.indexes():
-            self.contentFilter['cancellation_state'] = 'active'
-        self.contentFilter.update(**kwargs)
-        objects = (b.getObject() for b in catalog(self.contentFilter))
+        if 'allow_blank' in kwargs:
+            allow_blank = True
+            del (kwargs['allow_blank'])
 
-        items = []
-        for obj in objects:
-            key = obj[self.key]
-            key = callable(key) and key() or key
-            value = obj[self.value]
-            value = callable(value) and value() or value
+        self.contentFilter.update(**kwargs)
+
+        # If a secondary deactivation/cancellation workflow is anbled,
+        # Be sure and select only active objects, unless other instructions
+        # are explicitly specified:
+        wf = getToolByName(site, 'portal_workflow')
+        if 'portal_type' in self.contentFilter:
+            portal_type = self.contentFilter['portal_type']
+            wf_ids = [x.id for x in wf.getWorkflowsFor(portal_type)]
+            if 'bika_inactive_workflow' in wf_ids \
+                    and 'bika_inactive_workflow' not in self.contentFilter:
+                self.contentFilter['inactive_state'] = 'active'
+            elif 'bika_cancellation_workflow' in wf_ids \
+                    and 'bika_inactive_workflow' not in self.contentFilter:
+                self.contentFilter['cancellation_state'] = 'active'
+
+        brains = catalog(self.contentFilter)
+
+        items = [('', '')] if allow_blank else []
+        for brain in brains:
+            if self.key in brain and self.value in brain:
+                key = getattr(brain, self.key)
+                value = getattr(brain, self.value)
+            else:
+                obj = brain.getObjec()
+                key = obj[self.key]
+                key = callable(key) and key() or key
+                value = obj[self.value]
+                value = callable(value) and value() or value
             items.append((key, t(value)))
 
         return DisplayList(items)

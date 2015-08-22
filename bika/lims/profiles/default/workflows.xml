@@ -30,8 +30,10 @@
   <default>
    <bound-workflow workflow_id="plone_workflow"/>
   </default>
+
   <type type_id="ARImport">
    <bound-workflow workflow_id="bika_arimport_workflow"/>
+   <bound-workflow workflow_id="bika_cancellation_workflow"/>
   </type>
 
   <type type_id="ARPriorities"/>
@@ -98,7 +100,7 @@
   </type>
 
   <type type_id="AnalysisSpecs"/>
-  <type type_id="ARImportItem"/>
+
   <type type_id="Attachment"/>
   <type type_id="AttachmentType">
    <bound-workflow workflow_id="bika_one_state_workflow"/>
